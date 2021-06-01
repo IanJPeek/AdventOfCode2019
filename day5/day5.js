@@ -1,100 +1,149 @@
 let { input } = require("./input");
+let { sampler} = require("../utils/utils");
+
 input = input.split(",");
 input = input.map(numString => Number(numString));
-// before running the program, replace position 1 with the value 12 and replace position 2 with the value 2. What value is left at position 0 after the program halts?
-let copyArr = [...input];
 
-let replacer1 = 12;
-let replacer2 = 2;
-input[1] = replacer1;
-input[2] = replacer2;
-// console.log("modified original", input)
-// console.log("copy", copyArr);
-// console.log("input", input);
+const onlyInput = 1;
+const egArr = [3, 0, 4, 0, 99];
+// commands [[3, 0], [4,0], [99]]
+// (3, 0) => "3" takes onlyInput "1" & saves it to position 0 => egArr becomes [0, 0, 4, 0, 99]
+// (4, 0) => "4" outputs value at position 0 (now 0)
+// (99) => exits program (output was 0)
 
-// DAY 5 PART 1
-const testArr = [1, 9, 10, 3, 2, 3, 11, 0, 99, 30, 40, 50]; //
-const test2 = [1, 0, 0, 0, 99]; // becomes 2,0,0,0,99 (1 + 1 = 2).
-const test3 = [2, 3, 0, 3, 99]; // becomes 2,3,0,6,99 (3 * 2 = 6).
-const test4 = [2, 4, 4, 5, 99, 0]; // becomes 2,4,4,5,99,9801 (99 * 99 = 9801).
-const test5 = [1, 1, 1, 4, 99, 5, 6, 0, 99]; // becomes 30,1,1,4,2,5,6,0,99.
-// console.log("testArr", input);
+const testArr = [1002, 4, 3, 4, 33];
+const negArr = [1101, 100, -1, 4, 0];
+const sample = sampler(input, 20)
+// commands [[1002, 4, 3, 4], [33]]
+// first command updates second arr [[1002, 4, 3, 4], [99]]
+// program finishes on 2nd instruct
 
-const opCodeParser = numArr => {
-  let opCodesArr = [];
-  let opArr = [];
 
-  for (let num in numArr) {
-    opArr.push(numArr[num]);
-    if (num % 4 === 3) {
-      opCodesArr.push(opArr);
-      opArr = [];
+let pointer = 0;
+
+const opCodeParserV2 = numArr => {
+  let copyArr = [...numArr];
+  console.log("startArr", numArr);
+
+  let opCodesAndParamsArr = [];
+  let commandArr = [];
+  let arrLimit = numArr.length - 1;
+
+  while (pointer <= arrLimit) {
+    
+    let opCode = copyArr[pointer];
+
+    // check (first) value has not been updated in original array
+    if (opCode != numArr[pointer]) {
+      opCode == numArr[pointer];
     }
-  }
 
-  // push final "remainder" array (if exists)
-  if (opArr.length > 0) {
-    opCodesArr.push(opArr);
-  }
+    let instructNum_lastDigit = opCode.toString()[
+      Number(opCode.toString().length) - 1
+    ];
+    instructNum_lastDigit = Number(instructNum_lastDigit);
+    console.log("\nfull opCode", opCode, "lastDigit", instructNum_lastDigit);
 
-  return opCodesArr;
+    // HANDLE 3 or 4 - input / output (two nos / one param)
+    if (instructNum_lastDigit === 3 || instructNum_lastDigit === 4) {
+      console.log("capturing opcode + 1 param (pointer + 2)");
+
+      if (instructNum_lastDigit === 3) {
+        const inputSavePosition = numArr[pointer + 1]
+        console.log(`Saving INPUT at position ${inputSavePosition}`)
+        numArr[inputSavePosition] = onlyInput
+      }
+      if (instructNum_lastDigit === 4) {
+        const outputValuePosition = numArr[pointer + 1]
+        const outputValue = numArr[outputValuePosition] 
+        console.log(`OUTPUTTING value at position ${outputValuePosition}:-  ${outputValue}`);
+      }
+      commandArr.push(instructNum_lastDigit, numArr[pointer + 1]);
+      opCodesAndParamsArr.push(commandArr);
+      commandArr = [];
+      pointer = pointer + 2;
+
+      console.log("array after input/ output", numArr)
+
+      // HANDLE 1 or 2 - input / output (two nos / one param)
+    } else if (instructNum_lastDigit === 1 || instructNum_lastDigit === 2) {
+      console.log("capturing opcode + 3 params (pointer + 4)");
+      commandArr.push(opCode);
+
+      let paramInstructionNums = opCode.toString().slice(0, -2);
+      let hundreds = Number(paramInstructionNums.slice(-1));
+      let thousands = Number(paramInstructionNums.slice(-2, -1)) || 0;
+      let tenThousands = Number(paramInstructionNums.slice(-3, -2)) || 0;
+
+      console.log("hundreds", hundreds);
+      console.log("thousands", thousands);
+      console.log("tenThousands", tenThousands);
+
+      let hundredsVal;
+      if (hundreds == 0) {
+        let lookUp = numArr[pointer + 1];
+        hundredsVal = numArr[lookUp];
+        commandArr.push(lookUp);
+      } else if (hundreds == 1) {
+        hundredsVal = numArr[pointer + 1];
+        commandArr.push(numArr[pointer + 1]);
+      }
+      console.log("\nhundreds value", hundredsVal);
+
+      let thousandsVal;
+      if (thousands == 0) {
+        let lookUp = numArr[pointer + 2];
+        thousandsVal = numArr[lookUp];
+        commandArr.push(lookUp);
+      } else if (thousands == 1) {
+        thousandsVal = numArr[pointer + 2];
+        commandArr.push(numArr[pointer + 2]);
+      }
+      console.log("thousands value", thousandsVal);
+
+
+      if (tenThousands == 0 || tenThousands == 1) {
+        let lookUp = numArr[pointer + 3];
+        console.log("tenThousands lookup", lookUp);
+
+        if (instructNum_lastDigit === 2) {
+          let multiValue = hundredsVal * thousandsVal;
+          console.log("multiValue:", multiValue);
+          numArr[lookUp] = multiValue;
+          console.log("newly written", numArr);
+        } else if (instructNum_lastDigit === 1) {
+          let addValue = hundredsVal + thousandsVal;
+          numArr[lookUp] = addValue;
+        }
+
+        commandArr.push(lookUp);
+      }
+     
+      opCodesAndParamsArr.push(commandArr);
+      commandArr = [];
+      pointer = pointer + 4;
+
+      // opCode = numArr[pointer];
+      copyArr = [...numArr];
+    } else if (instructNum_lastDigit === 9) {
+      console.log("value 99 - finishing");
+      opCodesAndParamsArr.push([99]);
+      
+      // pointer = pointer + 1;
+      // (Update with high value to force-finish while loop...)
+      pointer = pointer + 1000;
+
+    }
+    console.log("pointer value", pointer);
+    console.log("opCode & params Arr", opCodesAndParamsArr);
+
+  }
+  // opCodesAndParamsArr.push(commandArr)
+  console.log(opCodesAndParamsArr);
 };
-const opCodesArr = opCodeParser(input);
-// console.log("opCodesArr", opCodesArr, "\n");
+opCodeParserV2(input);
 
-const opCodeRunner = (opCodesArr, srcArr) => {
-  let opCodeIndex = 0;
+// Pt. 1 answer - Final output value (at position 223) : 4601506
 
-  for (let opCodeArr of opCodesArr) {
-    let [program, input1, input2, writeIndex] = opCodeArr;
-    input1 = srcArr[input1];
-    input2 = srcArr[input2];
 
-    // (BUG-FIX) check parsed version of program has not been replaced in srcArr, overwrite if so
-    let programCheck = srcArr[opCodeIndex * 4];
-    // console.log("program", program, "programCheck", programCheck)
-    if (program !== programCheck) {
-      program = programCheck;
-    }
 
-    if (program === 1) {
-      newResult = input1 + input2;
-      srcArr[writeIndex] = newResult;
-      opCodeIndex++;
-    } else if (program === 2) {
-      newResult = input1 * input2;
-      srcArr[writeIndex] = newResult;
-      opCodeIndex++;
-    } else if (program === 99) {
-      // console.log("finishing with:", srcArr)
-      return srcArr;
-    }
-  }
-};
-const adjustedArr = opCodeRunner(opCodesArr, input);
-let output = adjustedArr[0];
-console.log(`\n Position 0 (ANSWER) = ${output}`);
-
-// DAY 2 PART 2
-
-const target = 19690720;
-replacer1 = 0;
-replacer2 = 0;
-
-while (output !== target) {
-  let tryArr = [...copyArr];
-  if (replacer1 < 100) {
-    tryArr[1] = replacer1;
-    tryArr[2] = replacer2;
-    const tryCodesArr = opCodeParser(tryArr);
-    const adjustedArr = opCodeRunner(tryCodesArr, tryArr);
-    output = adjustedArr[0];
-    // console.log("output", output);
-    replacer1++;
-  } else {
-    replacer1 = 0;
-    replacer2++;
-  }
-}
-console.log(`Input pair are ${replacer1 - 1} and ${replacer2}`); // ANS 41 and 12
-// 4112 = correct ANS
